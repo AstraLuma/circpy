@@ -1,0 +1,30 @@
+[tool.poetry]
+name = "circpy"
+version = "0.0.1"
+description = "CircuitPython Multi-Tool"
+authors = ["Jamie Bliss <jamie@ivyleav.es>"]
+license = "GPL-3.0"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+httpx = "^0.25.0"
+websockets = "^11.0.3"
+
+
+[tool.poetry.group.docs.dependencies]
+sphinx = "^7.2.6"
+furo = "^2023.9.10"
+
+
+[tool.poetry.group.tests.dependencies]
+pytest = "^7.4.2"
+
+
+[tool.poetry.group.dev.dependencies]
+flake8 = "^6.1.0"
+mypy = "^1.6.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
