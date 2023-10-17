@@ -1,13 +1,25 @@
-from abc import abstractmethod
+from abc import ABC, abstractmethod, abstractproperty
 from datetime import datetime
 import io
 import pathlib
 
 
-class CPPath(pathlib.PurePath):
+class CPPath(ABC):
     """
-    Base class for Paths pointing into a CircuitPython device
+    Base class for Paths pointing into a CircuitPython device.
+
+    Tries to follow the pathlib.Path interface.
     """
+    # FIXME: Implement the rest of the methods
+
+    @abstractmethod
+    def as_uri(self):
+        ...
+
+    @abstractproperty
+    def name(self):
+        ...
+
     @abstractmethod
     def exists(self) -> bool:
         ...
@@ -64,8 +76,19 @@ class CPPath(pathlib.PurePath):
     def replace(self, target):
         ...
 
+    def __eq__(self, other):
+        return self.as_uri() == other.as_uri()
 
-class Root(CPPath):
+    def walk(self):
+        yield self
+        for child in self.iterdir():
+            if child.is_dir():
+                yield from self.iterdir()
+            else:
+                yield child
+
+
+class Root(CPPath, ABC):
     """
     The CircuitPython device itself.
     """
