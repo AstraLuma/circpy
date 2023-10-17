@@ -46,7 +46,7 @@ class WebPath(_base.CPPath):
         return resp.content
 
     def read_text(self) -> str:
-        return self.read_bytes.decode('utf-8')
+        return self.read_bytes().decode('utf-8')
 
     def write_bytes(self, data: bytes):
         modtime_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
@@ -78,7 +78,9 @@ class WebPath(_base.CPPath):
                 url = prefix + item['name'] + '/'
             else:
                 url = prefix + item['name']
-            yield WebPath(self._client, url, item)
+            obj = WebPath(self._client, url, item)
+            obj.parent = self
+            yield obj
 
     def mtime(self) -> datetime:
         assert self.exists()
@@ -139,6 +141,11 @@ class WebWorkflow(WebPath, _base.Root):
             'modified_ns': 0,
             'file_size': 0,
         }
+        self.parent = self
+
+    @property
+    def name(self):
+        return ''
 
     def open_term(self):
         raise NotImplementedError

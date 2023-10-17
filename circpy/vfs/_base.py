@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod, abstractproperty
 from datetime import datetime
 import io
 import pathlib
+from typing import Self
 
 
 class CPPath(ABC):
@@ -10,6 +11,7 @@ class CPPath(ABC):
 
     Tries to follow the pathlib.Path interface.
     """
+    parent: Self
     # FIXME: Implement the rest of the methods
 
     @abstractmethod
@@ -83,9 +85,45 @@ class CPPath(ABC):
         yield self
         for child in self.iterdir():
             if child.is_dir():
-                yield from self.iterdir()
+                yield from child.walk()
             else:
                 yield child
+
+    def relative_to(self, other):
+        """Return the relative path to another path identified by the passed
+        arguments.  If the operation is not possible (because this is not
+        related to the other path), raise ValueError.
+        """
+        def parents(dir):
+            yield dir
+            while dir.parent != dir:
+                dir = dir.parent
+                yield dir
+        for step, path in enumerate(parents(other)):
+            if self.is_relative_to(path):
+                break
+        else:
+            raise ValueError(
+                f"{str(self)!r} and {str(other)!r} have different anchors")
+
+        bits = []
+        for parent in parents(self):
+            bits.append(parent.name)
+            if parent == path:
+                break
+
+        bits = list(reversed(bits[:-1]))
+        return pathlib.PurePosixPath(*bits)
+
+    def is_relative_to(self, other):
+        """Return True if the path is relative to another path or False.
+        """
+        def parents(dir):
+            yield dir
+            while dir.parent != dir:
+                dir = dir.parent
+                yield dir
+        return other in parents(self)
 
 
 class Root(CPPath, ABC):
