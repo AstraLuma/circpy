@@ -6,6 +6,9 @@ authors = ["Jamie Bliss <jamie@ivyleav.es>"]
 license = "GPL-3.0"
 readme = "README.md"
 
+[tool.poetry.scripts]
+circpy = 'circpy.cli:main'
+
 [tool.poetry.dependencies]
 python = "^3.11"
 httpx = "^0.25.0"
