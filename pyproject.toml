@@ -14,7 +14,7 @@ python = "^3.11"
 httpx = "^0.25.0"
 websockets = "^11.0.3"
 pyserial = "^3.5"
-
+pathlib2 = { version = "^2.3", python = "<3.12" }
 
 [tool.poetry.group.docs.dependencies]
 sphinx = "^7.2.6"

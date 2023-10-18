@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod, abstractproperty
 from datetime import datetime
 import io
-import pathlib
 from typing import Self
+
+from .. import _pathlib
 
 
 class CPPath(ABC):
@@ -14,7 +15,30 @@ class CPPath(ABC):
     parent: Self
     # FIXME: Implement the rest of the methods
 
+    def __repr__(self):
+        return f'<{type(self).__name__} {self.as_uri()!r}>'
+
+    def __truediv__(self, other):
+        if isinstance(other, _pathlib.PurePath):
+            other = str(other)
+
+        if '/' in other:
+            thisstep, _, nextstep = other.partition('/')
+            nextfile = self / thisstep
+            return nextfile / nextstep
+        else:
+            for f in self.iterdir():
+                if f.name == other:
+                    return f
+            else:
+                return self._synthesize_child(other)
+
     @abstractmethod
+    def _synthesize_child(self, name):
+        """
+        Create a fake path that doesn't exist
+        """
+
     def as_uri(self):
         ...
 
@@ -39,16 +63,14 @@ class CPPath(ABC):
         ...
 
     @abstractmethod
+    def write_bytes(self, data: bytes, *, mtime=None):
+        ...
+
     def read_text(self) -> str:
-        ...
+        return self.read_bytes().decode('utf-8')
 
-    @abstractmethod
-    def write_bytes(self, data: bytes):
-        ...
-
-    @abstractmethod
-    def write_text(self, data: str):
-        ...
+    def write_text(self, data: str, *, mtime=None):
+        self.write_bytes(data.encode('utf-8'), mtime=mtime)
 
     @abstractmethod
     def iterdir(self):
@@ -81,13 +103,43 @@ class CPPath(ABC):
     def __eq__(self, other):
         return self.as_uri() == other.as_uri()
 
-    def walk(self):
-        yield self
-        for child in self.iterdir():
-            if child.is_dir():
-                yield from child.walk()
+    def walk(self, top_down=True, on_error=None, follow_symlinks=False):
+        """Walk the directory tree from this directory, similar to os.walk()."""
+        paths = [self]
+
+        while paths:
+            path = paths.pop()
+            if isinstance(path, tuple):
+                yield path
+                continue
+
+            try:
+                scandir_it = path.iterdir()
+            except OSError as error:
+                if on_error is not None:
+                    on_error(error)
+                continue
+
+            dirnames = []
+            filenames = []
+            for entry in scandir_it:
+                try:
+                    is_dir = entry.is_dir()
+                except OSError:
+                    # carried over from os.path.isdir().
+                    is_dir = False
+
+                if is_dir:
+                    dirnames.append(entry.name)
+                else:
+                    filenames.append(entry.name)
+
+            if top_down:
+                yield path, dirnames, filenames
             else:
-                yield child
+                paths.append((path, dirnames, filenames))
+
+            paths += [path / d for d in reversed(dirnames)]
 
     def relative_to(self, other):
         """Return the relative path to another path identified by the passed
@@ -113,7 +165,7 @@ class CPPath(ABC):
                 break
 
         bits = list(reversed(bits[:-1]))
-        return pathlib.PurePosixPath(*bits)
+        return _pathlib.PurePosixPath(*bits)
 
     def is_relative_to(self, other):
         """Return True if the path is relative to another path or False.

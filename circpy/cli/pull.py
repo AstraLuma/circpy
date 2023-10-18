@@ -1,22 +1,17 @@
 import pathlib
 
 from . import _top
+from .. import _pathlib
+from .. import junk_drawer
 
 
 def pull(args):
-    for src in args.board.walk():
-        dest = args.dest / src.relative_to(args.board)
-        print(f"{src} -> {dest}")
-        if src.is_file():
-            dest.write_bytes(src.read_bytes())
-        elif src.is_dir():
-            dest.mkdir(exist_ok=True, parents=True)
-        # FIXME: mtime
+    junk_drawer.walking_copy(args.board, args.dest)
 
 
 parser = _top.subparsers.add_parser(
     'pull', help='Pull files from the board',
     parents=[_top.board_parser],
 )
-parser.add_argument('dest', help='Place to write files to', type=pathlib.Path)
+parser.add_argument('dest', help='Place to write files to', type=_pathlib.Path)
 parser.set_defaults(func=pull)

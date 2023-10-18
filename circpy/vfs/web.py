@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 import httpx
 
 from . import _base
+from .. import _pathlib
 
 
 class WebPath(_base.CPPath):
@@ -20,8 +21,16 @@ class WebPath(_base.CPPath):
         self._url = url
         self._metadata = metadata
 
-    def __repr__(self):
-        return f'<{type(self).__name__} {self.as_uri()!r}>'
+    def __str__(self):
+        bits = urlparse(self._url)
+        return f"{bits.hostname}:{bits.path.removeprefix('/fs')}"
+
+    def _synthesize_child(self, name):
+        if self._url.endswith('/'):
+            prefix = self._url
+        else:
+            prefix = self._url + '/'
+        return WebPath(self._client, prefix + name, None)
 
     @property
     def name(self):
@@ -45,11 +54,11 @@ class WebPath(_base.CPPath):
         resp.raise_for_status()
         return resp.content
 
-    def read_text(self) -> str:
-        return self.read_bytes().decode('utf-8')
-
-    def write_bytes(self, data: bytes):
-        modtime_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+    def write_bytes(self, data: bytes, *, mtime=None):
+        if mtime:
+            modtime_ms = mtime.timestamp() * 1000
+        else:
+            modtime_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
         resp = self._client.put(
             self._url, content=data, headers={'X-Timestamp': str(modtime_ms)},
         )
@@ -61,10 +70,8 @@ class WebPath(_base.CPPath):
             'file_size': len(data),
         }
 
-    def write_text(self, data: str):
-        self.write_bytes(data.encode('utf-8'))
-
     def iterdir(self):
+        print(f"iterdir {self=}")
         assert self.is_dir()
         resp = self._client.get(
             self._url, headers={'Accept': 'application/json'})
@@ -127,7 +134,12 @@ class WebPath(_base.CPPath):
 class WebWorkflow(WebPath, _base.Root):
     def __init__(self, hostname, password, *, client=None):
         if client is None:
-            self._client = httpx.Client(auth=('', password))
+            self._client = httpx.Client(
+                auth=('', password),
+                transport=httpx.HTTPTransport(retries=2),
+                limits=httpx.Limits(
+                    max_keepalive_connections=0, max_connections=1)
+            )
         else:
             self._client = client
 
