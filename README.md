@@ -2,12 +2,12 @@
 
 A CircuitPython multi-tool.
 
-Supports all three workflows: USB (TODO), Web (TODO), and BLE (TODO)
+Supports all three workflows: USB (TODO), Web, and BLE (TODO)
 
 Features include:
 
 - WiFi configuration (TODO)
-- File synchronization (TODO)
+- File synchronization (Partial)
 - Serial terminal (TODO)
 - Library management (TODO)
 
