@@ -71,7 +71,6 @@ class WebPath(_base.CPPath):
         }
 
     def iterdir(self):
-        print(f"iterdir {self=}")
         assert self.is_dir()
         resp = self._client.get(
             self._url, headers={'Accept': 'application/json'})
