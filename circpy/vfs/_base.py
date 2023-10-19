@@ -23,9 +23,14 @@ class CPPath(ABC):
             other = str(other)
 
         if '/' in other:
+            # Break up and recurse
             thisstep, _, nextstep = other.partition('/')
             nextfile = self / thisstep
             return nextfile / nextstep
+        elif other == '.':
+            return self
+        elif other == '..':
+            return self.parent
         else:
             for f in self.iterdir():
                 if f.name == other:
